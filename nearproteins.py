@@ -6,6 +6,8 @@ from redis import Redis
 import sys
 import json
 
+import tornado
+
 from Bio import SeqIO
 
 from nearpy import Engine
@@ -15,85 +17,93 @@ from nearpy.filters import DistanceThresholdFilter
 
 import numpy as np
 
-# 20 amino acids
-ALPHABET = [ 'A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K',
-             'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V', ]
-
-assert len(ALPHABET) == 20
-
-K = 2 # k-mer size for shingles
-P = 100 # number of Random Binary Projections
-MAX_DIST = 20 # maximum distance threshold
-
 # The distance ratio of an ANN y is it's distance to the minimal hypersphere
 # around the query vector x, that contains all exact nearest neighbours n,
 # clamped to zero and normalized with this hypersphere's radius
 
-TEST = False # test on a little bit of sequences
+class FeatureGenerator:
 
-def shingles(s, k):
-    ''' return shingles of a given string given a k-mer size k '''
-    return [ s[i : i + k ] for i in range(0, len(s) - k + 1) ]
+    def __init__(self, **kwargs):
+        ''' '''
+
+        self.alphabet = [ 'A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K',
+                     'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V', ]
+
+        assert len(self.alphabet) == 20
+        self.k = kwargs['K']
+        self.feature_space = list(''.join(i) for i in product(self.alphabet, repeat=self.k))
+
+        self.n_features = len(self.feature_space)
 
 
-def to_features(s, f):
-    ''' convert shingles to features vector '''
-    d = defaultdict(lambda: 0)
-    for i in s:
-        d[i] += 1
-    # automatically filters out features that aren't in ALPHABET!
-    return np.array([ d[i] for i in f ])
+    def shingles(self, s, k):
+        ''' return shingles of a given string given a k-mer size k '''
+        return [ s[i : i + k ] for i in range(0, len(s) - k + 1) ]
 
-# array of all possible features
-features = list(''.join(i) for i in product(ALPHABET, repeat=2))
 
-rbp = RandomBinaryProjections('rbp', P)
+    def vectorize(self, s):
+        ''' convert shingles to features vector '''
 
-redis_storage = RedisStorage(Redis(host='localhost', port=6379, db=0))
+        d = defaultdict(lambda: 0)
 
-lsh = Engine(len(features),
-             lshashes=[rbp],
-             vector_filters = [DistanceThresholdFilter(MAX_DIST)],
-             storage=redis_storage
-             )
+        for i in s:
+            d[i] += 1
 
-# train
+        return np.array([ d[i] for i in self.feature_space ])
+
+
+    def transform(self, str):
+        return self.vectorize(self.shingles(str, self.k))
+
+
+
+
+class SimilarStringStore:
+
+    def __init__(self):
+
+
+        self.config = {}
+        self.config['K'] = 2 # k-mer size for shingles
+        self.config['P'] = 100 # number of Random Binary Projections
+        self.config['MAX_DIST'] = 20 # maximum distance threshold
+
+        self.transformer = FeatureGenerator(K = self.config['K'])
+
+        self.hasher = RandomBinaryProjections('rbp', self.config['P'])
+        self.backend = RedisStorage(Redis(host='localhost', port=6379, db=0))
+
+        self.filters = [ DistanceThresholdFilter(self.config['MAX_DIST']) ]
+
+        self.engine = Engine(self.transformer.n_features,
+                     lshashes=[self.hasher],
+                     vector_filters = self.filters,
+                     storage=self.backend
+                     )
+
+    def add(self, id, str):
+        ''' add a string to index '''
+
+        vector = self.transformer.transform(str)
+        self.engine.store_vector(vector, id)
+        return vector
+
+
+    def query(self, str):
+        ''' query index '''
+        vector = self.transformer.transform(str)
+        neighbours = self.engine.neighbours(vector)
+        return neighbours
+
+
+
+store = SimilarStringStore()
+
+
 with open('proteins.fasta') as handle:
     records = SeqIO.parse(handle, 'fasta')
 
     for i, record in enumerate(records):
-        seq = str(record.seq)
-        feat = to_features(shingles(seq, K), features)
+        store.add(record.id, str(record.seq))
 
-        lsh.store_vector(feat, record.id)
-
-        if i % 10000 == 0:
-            print >> sys.stderr, 'training: %s' % (i)
-
-        if TEST:
-            if i > 10000:
-                break
-
-# predict
-
-neighbor_counts = []
-
-with open('proteins.fasta') as handle:
-    records = SeqIO.parse(handle, 'fasta')
-
-    for i, record in enumerate(records):
-        seq = str(record.seq)
-        feat = to_features(shingles(seq, K), features)
-
-        neighbours = lsh.neighbours(feat)
-
-        hits = [ n[1] for n in neighbours ]
-
-        if i % 10000 == 0:
-            print >> sys.stderr, 'predicting: %s' % (i)
-
-        print json.dumps({ 'query': record.id, 'hits': hits })
-
-        if TEST:
-            if i > 10000:
-                break
+        print store.query(str(record.seq))
