@@ -25,7 +25,7 @@ def main():
     store = nerp.SimilarStringStore()
     logging.info('store: %s' % store)
 
-    with open('proteins.fasta') as handle:
+    with open(args.input) as handle:
         records = SeqIO.parse(handle, 'fasta')
 
         for i, record in enumerate(records):
