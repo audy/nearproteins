@@ -57,14 +57,14 @@ results = store.get(str(record.seq))
 
 You can query and add records to the database using simple sockets.
 
-```
-./server # start the server, listens on port 1234
+```sh
+$ ./server # start the server, listens on port 1234
 ```
 
 In another window...
 
-```
-nc 127.0.0.1 1234 # connect
+```sh
+$ nc 127.0.0.1 1234 # connect
 SET 1 AUSTIN
 SET 2 BOSTON
 GET AUSTIN
