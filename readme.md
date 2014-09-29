@@ -33,7 +33,7 @@ Very basic. I plan to add more configuration.
 ### Loading data into store
 
 ```python
-
+from Bio import SeqIO
 import nearproteins
 
 store = nearproteins.SimilarStringStore()
