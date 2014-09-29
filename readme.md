@@ -1,8 +1,26 @@
 # nearproteins
 
-LSH Clustering of Proteins.
+Store for finding similar amino acid sequences.
 
-Using [NearPy](http://nearpy.io).
+## Installation
 
-**note**: currently working with
-[this](https://github.com/pixelogik/NearPy/tree/2d05bf38d8dc52cb765534094cb5006c9ed622b6) ref on GitHub.
+Python, with dependencies:
+
+- NearPy, using [this](https://github.com/pixelogik/NearPy/tree/2d05bf38d8dc52cb765534094cb5006c9ed622b6) ref on GitHub.
+- BioPython
+
+Redis
+
+## Instructions
+
+1. Load proteins into database
+
+```sh
+$ ./load-proteins < data/proteins.fasta
+```
+
+2. Query database
+
+```sh
+$ ./query-proteins < data/proteins.fasta # returns JSON for each record
+```
