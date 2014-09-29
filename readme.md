@@ -1,6 +1,7 @@
 # nearproteins
 
-Store for finding similar amino acid sequences.
+Store for finding similar amino acid sequences using Locality Sensitive Hashing
+and Approximate Nearest Neighbors.
 
 ## Installation
 
