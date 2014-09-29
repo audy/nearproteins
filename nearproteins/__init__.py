@@ -60,7 +60,6 @@ class SimilarStringStore:
 
     def __init__(self):
 
-
         self.config = {}
         self.config['K'] = 2 # k-mer size for shingles
         self.config['P'] = 100 # number of Random Binary Projections
