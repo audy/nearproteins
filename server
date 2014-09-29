@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+import json
+
+import nearproteins as nearp
+from twisted.internet import protocol, reactor, endpoints
+
+store = nearp.SimilarStringStore()
+
+class DataBase(protocol.Protocol):
+
+    def dataReceived(self, data):
+        data = data.split(' ')
+        if data[0] == 'GET':
+            query = data[1]
+
+            neighbors = store.query(query)
+            results = { x[1]: x[2] for x in neighbors }
+
+            self.transport.write(json.dumps(results) + "\n")
+
+        if data[0] == 'SET':
+            id = data[1]
+            seq = data[2]
+
+            store.add(seq, id)
+
+
+class DataBaseFactory(protocol.Factory):
+
+    def buildProtocol(self, addr):
+        print 'connection from %s' % addr
+        return DataBase()
+
+
+endpoints.serverFromString(reactor, 'tcp:1234').listen(DataBaseFactory())
+
+reactor.run()
