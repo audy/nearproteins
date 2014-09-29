@@ -6,8 +6,6 @@ from redis import Redis
 import sys
 import json
 
-import tornado
-
 from Bio import SeqIO
 
 from nearpy import Engine
@@ -94,16 +92,3 @@ class SimilarStringStore:
         vector = self.transformer.transform(str)
         neighbours = self.engine.neighbours(vector)
         return neighbours
-
-
-
-store = SimilarStringStore()
-
-
-with open('proteins.fasta') as handle:
-    records = SeqIO.parse(handle, 'fasta')
-
-    for i, record in enumerate(records):
-        store.add(record.id, str(record.seq))
-
-        print store.query(str(record.seq))
