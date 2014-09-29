@@ -68,4 +68,7 @@ nc 127.0.0.1 1234 # connect
 SET 1 AUSTIN
 SET 2 BOSTON
 GET AUSTIN
+{"1": 0.0}
+GET BOSTON
+{"2": 0.0}
 ```
