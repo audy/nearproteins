@@ -65,7 +65,7 @@ class SimilarStringStore:
         self.config = {}
         self.config['K'] = 2 # k-mer size for shingles
         self.config['P'] = 100 # number of Random Binary Projections
-        self.config['MAX_DIST'] = 20 # maximum distance threshold
+        self.config['MAX_DIST'] = 20 # maximum distance threshold (euclidean)
 
         self.transformer = FeatureGenerator(K = self.config['K'])
 
