@@ -3,6 +3,7 @@ import nearproteins as nerp
 
 import argparse
 import logging
+import json
 
 from Bio import SeqIO
 
@@ -25,14 +26,22 @@ def main():
     store = nerp.SimilarStringStore()
     logging.info('store: %s' % store)
 
+    logging.info('engine: %s' % store.engine)
+
+    out = open(args.output, 'w')
+
     with open(args.input) as handle:
         records = SeqIO.parse(handle, 'fasta')
 
         for i, record in enumerate(records):
-            neighbors =  store.query(str(record.seq))
 
-            print neighbors
+            neighbors = store.query(str(record.seq))
 
+            results = { x[1]: x[2] for x in neighbors }
+            results['query'] = record.id
+
+            if len(neighbors) > 0:
+                print json.dumps(results)
 
 if __name__ == '__main__':
     main()

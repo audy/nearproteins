@@ -6,7 +6,6 @@ import logging
 
 from Bio import SeqIO
 
-
 def parse_args():
 
     parser = argparse.ArgumentParser()
@@ -29,13 +28,16 @@ def main():
     logging.info('clearing store')
     store.engine.clean_all_buckets()
 
+    logging.info('adding proteins to store')
+
+
     with open(args.input) as handle:
         records = SeqIO.parse(handle, 'fasta')
 
         for i, record in enumerate(records):
-            if i%1000 == 0:
-                logging.info('loading protein # %i' % i)
-            store.add(record.id, str(record.seq))
+            logging.info('loading protein #%i, id=%s' % (i, record.id))
+            store.add(str(record.seq), record.id)
+
 
 
 if __name__ == '__main__':

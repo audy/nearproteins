@@ -9,7 +9,7 @@ import json
 from Bio import SeqIO
 
 from nearpy import Engine
-from nearpy.hashes import RandomBinaryProjections
+from nearpy import hashes
 from nearpy.storage import RedisStorage
 from nearpy.filters import DistanceThresholdFilter
 
@@ -29,7 +29,9 @@ class FeatureGenerator:
 
         assert len(self.alphabet) == 20
         self.k = kwargs['K']
-        self.feature_space = list(''.join(i) for i in product(self.alphabet, repeat=self.k))
+
+        self.feature_space = list(''.join(i) for i in product(self.alphabet,
+            repeat=self.k))
 
         self.n_features = len(self.feature_space)
 
@@ -67,27 +69,26 @@ class SimilarStringStore:
 
         self.transformer = FeatureGenerator(K = self.config['K'])
 
-        self.hasher = RandomBinaryProjections('rbp', self.config['P'])
+        self.hasher = hashes.RandomBinaryProjections('rbp', self.config['P'], rand_seed=42)
+
         self.backend = RedisStorage(Redis(host='localhost', port=6379, db=0))
 
         self.filters = [ DistanceThresholdFilter(self.config['MAX_DIST']) ]
 
         self.engine = Engine(self.transformer.n_features,
                      lshashes=[self.hasher],
-                     vector_filters = self.filters,
+                     vector_filters = [], #self.filters,
                      storage=self.backend
                      )
 
-    def add(self, id, str):
+    def add(self, s, id):
         ''' add a string to index '''
-
-        vector = self.transformer.transform(str)
-        self.engine.store_vector(vector, id)
+        vector = self.transformer.transform(s)
+        self.engine.store_vector(vector, str(id))
         return vector
 
-
-    def query(self, str):
+    def query(self, s):
         ''' query index '''
-        vector = self.transformer.transform(str)
+        vector = self.transformer.transform(s)
         neighbours = self.engine.neighbours(vector)
         return neighbours
