@@ -77,7 +77,7 @@ class SimilarStringStore:
 
         self.engine = Engine(self.transformer.n_features,
                      lshashes=[self.hasher],
-                     vector_filters = [], #self.filters,
+                     vector_filters = self.filters,
                      storage=self.backend
                      )
 
