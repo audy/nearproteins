@@ -25,3 +25,30 @@ $ ./load-proteins < data/proteins.fasta
 ```sh
 $ ./query-proteins < data/proteins.fasta # returns JSON for each record
 ```
+
+## Python API
+
+Very basic. I plan to add more configuration.
+
+### Loading data into store
+
+```python
+
+import nearproteins
+
+store = nearproteins.SimilarStringStore()
+
+store.engine.clean_all_buckets()
+
+records = SeqIO.parse(handle, 'fasta')
+
+for record in records:
+    store.add(str(record.seq), record.id)
+```
+
+### Retrieving records from store
+
+```python
+# returns array of vectors, match IDs, similarities
+results = store.get(str(record.seq)) 
+```
