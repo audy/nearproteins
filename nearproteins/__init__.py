@@ -57,12 +57,11 @@ class FeatureGenerator:
 
 
 
-
 class SimilarStringStore:
 
     def __init__(self, **kwargs):
 
-        defaults = { 'seed': 42, 'K': 2, 'P': 100, 'MAX_DIST': 100 }
+        defaults = { 'seed': 42, 'K': 2, 'P': 10, 'MAX_DIST': 100 }
 
         defaults.update(kwargs)
         self.config = defaults
