@@ -10,8 +10,9 @@ store = nearp.SimilarStringStore()
 class DataBase(protocol.Protocol):
 
     def dataReceived(self, data):
-        data = data.split(' ')
+        data = data.strip().split(' ')
         if data[0] == 'GET':
+            print data
             query = data[1]
 
             neighbors = store.query(query)
@@ -19,11 +20,14 @@ class DataBase(protocol.Protocol):
 
             self.transport.write(json.dumps(results) + "\n")
 
-        if data[0] == 'SET':
+        elif data[0] == 'SET':
             id = data[1]
             seq = data[2]
 
             store.add(seq, id)
+
+        else:
+            print '??? %s' % data
 
 
 class DataBaseFactory(protocol.Factory):
