@@ -11,7 +11,7 @@ from Bio import SeqIO
 from nearpy import Engine
 from nearpy import hashes
 from nearpy.storage import RedisStorage
-from nearpy.filters import DistanceThresholdFilter
+from nearpy.filters import DistanceThresholdFilter, NearestFilter
 
 import numpy as np
 
@@ -61,10 +61,12 @@ class SimilarStringStore:
 
     def __init__(self, **kwargs):
 
-        defaults = { 'seed': 42, 'K': 2, 'P': 10, 'MAX_DIST': 100 }
+        defaults = { 'seed': 42, 'K': 2, 'P': 10, 'MAX_DIST': 30 }
 
         defaults.update(kwargs)
         self.config = defaults
+
+        assert self.config['P'] == 10
 
         self.transformer = FeatureGenerator(K = self.config['K'])
 
@@ -73,7 +75,8 @@ class SimilarStringStore:
 
         self.backend = RedisStorage(Redis(host='localhost', port=6379, db=0))
 
-        self.filters = [ DistanceThresholdFilter(self.config['MAX_DIST']) ]
+#        self.filters = [ DistanceThresholdFilter(self.config['MAX_DIST']) ]
+        self.filters = [ NearestFilter(10) ]
 
         self.engine = Engine(self.transformer.n_features,
                      lshashes=[self.hasher],
