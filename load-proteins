@@ -22,7 +22,7 @@ def main():
     logging.basicConfig(level=logging.INFO,
             filename='/dev/stderr')
 
-    store = nerp.SimilarStringStore()
+    store = nerp.SimilarStringStore(P=10)
     logging.info('store: %s' % store)
 
     logging.info('clearing store')
@@ -30,14 +30,13 @@ def main():
 
     logging.info('adding proteins to store')
 
-
     with open(args.input) as handle:
         records = SeqIO.parse(handle, 'fasta')
 
         for i, record in enumerate(records):
-            logging.info('loading protein #%i, id=%s' % (i, record.id))
             store.add(str(record.seq), record.id)
-
+            if i%1000 == 0:
+                logging.info('added %s proteins' % i)
 
 
 if __name__ == '__main__':

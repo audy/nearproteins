@@ -60,16 +60,17 @@ class FeatureGenerator:
 
 class SimilarStringStore:
 
-    def __init__(self):
+    def __init__(self, **kwargs):
 
-        self.config = {}
-        self.config['K'] = 2 # k-mer size for shingles
-        self.config['P'] = 100 # number of Random Binary Projections
-        self.config['MAX_DIST'] = 20 # maximum distance threshold (euclidean)
+        defaults = { 'seed': 42, 'K': 2, 'P': 100, 'MAX_DIST': 100 }
+
+        defaults.update(kwargs)
+        self.config = defaults
 
         self.transformer = FeatureGenerator(K = self.config['K'])
 
-        self.hasher = hashes.RandomBinaryProjections('rbp', self.config['P'], rand_seed=42)
+        self.hasher = hashes.RandomBinaryProjections('rbp', self.config['P'],
+                rand_seed=42)
 
         self.backend = RedisStorage(Redis(host='localhost', port=6379, db=0))
 
@@ -80,6 +81,9 @@ class SimilarStringStore:
                      vector_filters = self.filters,
                      storage=self.backend
                      )
+
+    def vectorize(self, s):
+        return self.engine.transformer.transform(s)
 
     def add(self, s, id):
         ''' add a string to index '''
@@ -92,3 +96,7 @@ class SimilarStringStore:
         vector = self.transformer.transform(s)
         neighbours = self.engine.neighbours(vector)
         return neighbours
+
+    def remove(self, id):
+        ''' remove a string from the index '''
+        pass
