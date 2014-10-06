@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
-from itertools import product
 from collections import defaultdict
-from redis import Redis
-import sys
+from itertools import product
 import json
+import random
+import sys
+
+from redis import Redis
 
 from Bio import SeqIO
 
@@ -61,17 +63,21 @@ class SimilarStringStore:
 
     def __init__(self, **kwargs):
 
-        defaults = { 'seed': 42, 'K': 2, 'P': 10, 'MAX_DIST': 30 }
+        defaults = { 'seed': 42, 'K': 2, 'P': 100, 'MAX_DIST': 30, 'n_hashers': 5 }
 
         defaults.update(kwargs)
         self.config = defaults
 
-        assert self.config['P'] == 10
-
         self.transformer = FeatureGenerator(K = self.config['K'])
 
-        self.hasher = hashes.RandomBinaryProjections('rbp', self.config['P'],
-                rand_seed=42)
+        random.seed(self.config['seed'])
+
+        hashers = []
+
+        for i in range(0, self.config['n_hashers']):
+            seed = random.randint(0, 10000)
+            hashers.append(hashes.RandomBinaryProjections('rbp-%s' % seed,
+                self.config['P'], rand_seed=seed))
 
         self.backend = RedisStorage(Redis(host='localhost', port=6379, db=0))
 
@@ -79,7 +85,7 @@ class SimilarStringStore:
         self.filters = [ NearestFilter(10) ]
 
         self.engine = Engine(self.transformer.n_features,
-                     lshashes=[self.hasher],
+                     lshashes=hashers,
                      vector_filters = self.filters,
                      storage=self.backend
                      )

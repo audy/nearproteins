@@ -22,7 +22,7 @@ def main():
     logging.basicConfig(level=logging.INFO,
             filename='/dev/stderr')
 
-    store = nerp.SimilarStringStore(P=10)
+    store = nerp.SimilarStringStore()
     logging.info('store: %s' % store)
 
     logging.info('clearing store')
