@@ -6,31 +6,23 @@ import json
 import random
 import sys
 
-from redis import Redis
+from annoy import AnnoyIndex
 
 from Bio import SeqIO
 
-from nearpy import Engine
-from nearpy import hashes
-from nearpy.storage import RedisStorage
-from nearpy.filters import DistanceThresholdFilter, NearestFilter
-
 import numpy as np
-
-# The distance ratio of an ANN y is it's distance to the minimal hypersphere
-# around the query vector x, that contains all exact nearest neighbours n,
-# clamped to zero and normalized with this hypersphere's radius
 
 class FeatureGenerator:
 
-    def __init__(self, **kwargs):
+    def __init__(self, k=2):
         ''' '''
+
+        self.k = k
 
         self.alphabet = [ 'A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K',
                      'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V', ]
 
         assert len(self.alphabet) == 20
-        self.k = kwargs['K']
 
         self.feature_space = list(''.join(i) for i in product(self.alphabet,
             repeat=self.k))
@@ -40,6 +32,7 @@ class FeatureGenerator:
 
     def shingles(self, s, k):
         ''' return shingles of a given string given a k-mer size k '''
+
         return [ s[i : i + k ] for i in range(0, len(s) - k + 1) ]
 
 
@@ -51,59 +44,56 @@ class FeatureGenerator:
         for i in s:
             d[i] += 1
 
-        return np.array([ d[i] for i in self.feature_space ])
+        # convert to counts in feature space
+        vector = np.array([ d[i] for i in self.feature_space ])
+
+        return vector
 
 
     def transform(self, str):
         return self.vectorize(self.shingles(str, self.k))
 
 
-
 class SimilarStringStore:
 
     def __init__(self, **kwargs):
 
-        defaults = { 'seed': 42, 'K': 2, 'P': 100, 'MAX_DIST': 30, 'n_hashers': 5 }
+        self.transformer = FeatureGenerator(k=1)
 
-        defaults.update(kwargs)
-        self.config = defaults
+        print(self.transformer.n_features)
 
-        self.transformer = FeatureGenerator(K = self.config['K'])
-
-        random.seed(self.config['seed'])
-
-        hashers = []
-
-        for i in range(0, self.config['n_hashers']):
-            seed = random.randint(0, 10000)
-            hashers.append(hashes.RandomBinaryProjections('rbp-%s' % seed,
-                self.config['P'], rand_seed=seed))
-
-        self.backend = RedisStorage(Redis(host='localhost', port=6379, db=0))
-
-#        self.filters = [ DistanceThresholdFilter(self.config['MAX_DIST']) ]
-        self.filters = [ NearestFilter(10) ]
-
-        self.engine = Engine(self.transformer.n_features,
-                     lshashes=hashers,
-                     vector_filters = self.filters,
-                     storage=self.backend
-                     )
+        self.store = AnnoyIndex(self.transformer.n_features)
 
     def vectorize(self, s):
-        return self.engine.transformer.transform(s)
+        return self.transformer.transform(s)
 
-    def add(self, s, id):
+    def add(self, id, s):
         ''' add a string to index '''
+
         vector = self.transformer.transform(s)
-        self.engine.store_vector(vector, str(id))
+        self.store.add_item(int(id), vector)
         return vector
+
+    def build(self):
+        self.store.build(500)
+
+    def save(self, filename='store.knn'):
+        self.store.save(filename)
+
+    def build_and_save(self, filename='store.knn'):
+        self.build()
+        self.save(filename)
+
+    def load(self, filename='store.knn'):
+        self.store.load(filename)
+
 
     def query(self, s):
         ''' query index '''
         vector = self.transformer.transform(s)
-        neighbours = self.engine.neighbours(vector)
-        return neighbours
+        neighbors = self.store.get_nns_by_vector(vector, 40)
+        return neighbors
+
 
     def remove(self, id):
         ''' remove a string from the index '''

@@ -6,6 +6,8 @@ import logging
 
 from Bio import SeqIO
 
+from itertools import islice
+
 def parse_args():
 
     parser = argparse.ArgumentParser()
@@ -25,18 +27,27 @@ def main():
     store = nerp.SimilarStringStore()
     logging.info('store: %s' % store)
 
-    logging.info('clearing store')
-    store.engine.clean_all_buckets()
-
     logging.info('adding proteins to store')
 
     with open(args.input) as handle:
-        records = SeqIO.parse(handle, 'fasta')
+        records = { int(r.id): str(r.seq) for r in islice(SeqIO.parse(handle, 'fasta'), 1000) }
 
-        for i, record in enumerate(records):
-            store.add(str(record.seq), record.id)
-            if i%1000 == 0:
-                logging.info('added %s proteins' % i)
+
+    for id, seq in records.items():
+        store.add(id, seq)
+
+    store.build_and_save()
+    store.load()
+
+    caught, missed = 0, 0
+
+    for id, seq in records.items():
+        if id in set(store.query(seq)):
+            caught += 1
+        else:
+            missed += 1
+
+    print('{} caught, {} missed'.format(caught, missed))
 
 
 if __name__ == '__main__':

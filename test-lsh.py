@@ -30,7 +30,6 @@ print('querying...')
 
 neighbors = lsh.kneighbors(X[0], 10)
 
-
 ids = list(neighbors[1][0])
 
 query = records[0][0]
