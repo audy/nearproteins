@@ -6,8 +6,6 @@ import logging
 
 from Bio import SeqIO
 
-from itertools import islice
-
 def parse_args():
 
     parser = argparse.ArgumentParser()
@@ -30,7 +28,7 @@ def main():
     logging.info('adding proteins to store')
 
     with open(args.input) as handle:
-        records = { int(r.id): str(r.seq) for r in islice(SeqIO.parse(handle, 'fasta'), 1000) }
+        records = { int(r.id): str(r.seq) for r in SeqIO.parse(handle, 'fasta') }
 
 
     for id, seq in records.items():
